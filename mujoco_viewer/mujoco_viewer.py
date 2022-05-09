@@ -479,5 +479,21 @@ class MujocoViewer:
         # apply perturbation (should this come before mj_step?)
         self.apply_perturbations()
 
+    # capture camera frame of a specified camera id and return img array and write in /tmp
+    def capture_frame(self, fixedcamid, save_path="/tmp/frame_%07d.png"):
+
+        self.cam.fixedcamid = fixedcamid
+        self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+        
+        img = np.zeros(
+            (glfw.get_framebuffer_size(
+                self.window)[1], glfw.get_framebuffer_size(
+                self.window)[0], 3), dtype=np.uint8)
+        mujoco.mjr_readPixels(img, None, self.viewport, self.ctx)
+        imageio.imwrite(save_path % self._image_idx, np.flipud(img))
+        self._image_idx += 1
+
+        return img
+
     def close(self):
         glfw.terminate()
