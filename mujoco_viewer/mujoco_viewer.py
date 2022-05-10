@@ -31,6 +31,9 @@ class MujocoViewer:
         self._advance_by_one_step = False
         self._hide_menu = False
 
+        # additions for the new feartures
+        self._last_img = None
+
         # glfw init
         glfw.init()
         width, height = glfw.get_video_mode(glfw.get_primary_monitor()).size
@@ -411,11 +414,12 @@ class MujocoViewer:
         mujoco.mjv_applyPerturbPose(self.model, self.data, self.pert, 0)
         mujoco.mjv_applyPerturbForce(self.model, self.data, self.pert)
 
-    def render(self):
+    def render(self, overlay_on=True):
         # mjv_updateScene, mjr_render, mjr_overlay
         def update():
             # fill overlay items
-            self._create_overlay()
+            if overlay_on:
+                self._create_overlay()
 
             render_start = time.time()
             if self.window is None:
@@ -480,7 +484,7 @@ class MujocoViewer:
         self.apply_perturbations()
 
     # capture camera frame of a specified camera id and return img array and write in /tmp
-    def capture_frame(self, fixedcamid, save_path="/tmp/frame_%07d.png"):
+    def capture_frame(self, fixedcamid, path="/tmp"):
 
         self.cam.fixedcamid = fixedcamid
         self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
@@ -490,10 +494,44 @@ class MujocoViewer:
                 self.window)[1], glfw.get_framebuffer_size(
                 self.window)[0], 3), dtype=np.uint8)
         mujoco.mjr_readPixels(img, None, self.viewport, self.ctx)
-        imageio.imwrite(save_path % self._image_idx, np.flipud(img))
+        path += "/frame_%07d.png" % self._image_idx
+        imageio.imwrite(path, np.flipud(img))
         self._image_idx += 1
 
         return img
+
+    # capture camera event of a specified camera id and return img array and write in /tmp
+    def capture_event_prototype(self, fixedcamid, path="/tmp"):
+        self.cam.fixedcamid = fixedcamid
+        self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
+        
+
+        img_original = np.zeros(
+            (glfw.get_framebuffer_size(
+                self.window)[1], glfw.get_framebuffer_size(
+                self.window)[0], 3), dtype=np.uint8)
+        mujoco.mjr_readPixels(img_original, None, self.viewport, self.ctx)
+
+        
+        grey_values = img_original.sum(axis=2)
+        img_grey = np.empty_like(img_original)
+        img_grey[:,:,0] = grey_values
+        img_grey[:,:,1] = grey_values
+        img_grey[:,:,2] = grey_values
+        if self._last_img is None:
+            self._last_img = img_grey
+            return None
+        else:
+            img_sub = img_grey - self._last_img
+            img = np.where(np.abs(img_sub) < 10, 0, 255)
+            self._last_img = img_grey
+
+        path += "/frame_%07d.png" % self._image_idx
+        imageio.imwrite(path, np.flipud(img_grey))
+        self._image_idx += 1
+
+        return img
+
 
     def close(self):
         glfw.terminate()
