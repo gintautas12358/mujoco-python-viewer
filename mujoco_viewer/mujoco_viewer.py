@@ -5,7 +5,11 @@ from threading import Lock
 import numpy as np
 import time
 import imageio
+import esim_torch
+import torch
+import cv2
 
+from .utils.esim import Esim_interface 
 
 class MujocoViewer:
     def __init__(self, model, data):
@@ -33,6 +37,7 @@ class MujocoViewer:
 
         # additions for the new feartures
         self._last_img = None
+        self._esim = Esim_interface()
 
         # glfw init
         glfw.init()
@@ -483,9 +488,7 @@ class MujocoViewer:
         # apply perturbation (should this come before mj_step?)
         self.apply_perturbations()
 
-    # capture camera frame of a specified camera id and return img array and write in /tmp
-    def capture_frame(self, fixedcamid, path="/tmp"):
-
+    def get_frame(self, fixedcamid):
         self.cam.fixedcamid = fixedcamid
         self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
         
@@ -494,43 +497,71 @@ class MujocoViewer:
                 self.window)[1], glfw.get_framebuffer_size(
                 self.window)[0], 3), dtype=np.uint8)
         mujoco.mjr_readPixels(img, None, self.viewport, self.ctx)
-        path += "/frame_%07d.png" % self._image_idx
+
+        if np.all(img < 1):
+            return None
+
+        return img
+
+    def save_img(self, img, path):
+        path += "/%08d.png" % self._image_idx
         imageio.imwrite(path, np.flipud(img))
         self._image_idx += 1
+
+    # capture camera frame of a specified camera id and return img array and write in /tmp
+    def capture_frame(self, fixedcamid, path="/tmp"):
+        img = self.get_frame(fixedcamid)
+        if img is None:
+            return None
+        
+        self.save_img(img, path)
+
+        return img
+
+
+    # capture camera event of a specified camera id and return img array and write in /tmp (Prototype)
+    def capture_event_prototype(self, fixedcamid, path="/tmp"):
+        img_original = self.get_frame(fixedcamid)
+        if img_original is None:
+            return None
+        
+        # grey_values = img_original.sum(axis=2)
+        # img_grey = np.empty_like(img_original)
+        # img_grey[:,:,0] = grey_values
+        # img_grey[:,:,1] = grey_values
+        # img_grey[:,:,2] = grey_values
+
+        gray_img = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
+        if self._last_img is None:
+            self._last_img = gray_img
+            return None
+        else:
+            img_sub = gray_img - self._last_img
+            img = np.where(np.abs(img_sub) < 10, 0, 255)
+            self._last_img = gray_img
+
+        self.save_img(img, path)
 
         return img
 
     # capture camera event of a specified camera id and return img array and write in /tmp
-    def capture_event_prototype(self, fixedcamid, path="/tmp"):
-        self.cam.fixedcamid = fixedcamid
-        self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
-        
+    def capture_event(self, fixedcamid, timestamp, path="/tmp"):
 
-        img_original = np.zeros(
-            (glfw.get_framebuffer_size(
-                self.window)[1], glfw.get_framebuffer_size(
-                self.window)[0], 3), dtype=np.uint8)
-        mujoco.mjr_readPixels(img_original, None, self.viewport, self.ctx)
+        img_original = self.get_frame(fixedcamid)
 
-        
-        grey_values = img_original.sum(axis=2)
-        img_grey = np.empty_like(img_original)
-        img_grey[:,:,0] = grey_values
-        img_grey[:,:,1] = grey_values
-        img_grey[:,:,2] = grey_values
-        if self._last_img is None:
-            self._last_img = img_grey
+        if img_original is None:
             return None
-        else:
-            img_sub = img_grey - self._last_img
-            img = np.where(np.abs(img_sub) < 10, 0, 255)
-            self._last_img = img_grey
 
-        path += "/frame_%07d.png" % self._image_idx
-        imageio.imwrite(path, np.flipud(img_grey))
-        self._image_idx += 1
+        gray_img = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
+        np_timestamp = np.array([timestamp])
+        e_img = self._esim.img2e(gray_img, np_timestamp)
 
-        return img
+        if e_img is None:
+            return None
+
+        self.save_img(e_img, path)
+
+        return e_img
 
 
     def close(self):
