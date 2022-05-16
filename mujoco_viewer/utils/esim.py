@@ -73,4 +73,4 @@ class Esim_interface:
         e = self.t2e(sub_events)
         im = self.viz_events(e, [H, W])
 
-        return im
+        return im, sub_events

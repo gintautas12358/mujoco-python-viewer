@@ -508,6 +508,10 @@ class MujocoViewer:
         imageio.imwrite(path, np.flipud(img))
         self._image_idx += 1
 
+    def save_events(self, e, path):
+        path += "/%010d.npz" % self._image_idx
+        np.savez(path, **e)
+
     # capture camera frame of a specified camera id and return img array and write in /tmp
     def capture_frame(self, fixedcamid, path="/tmp"):
         img = self.get_frame(fixedcamid)
@@ -524,12 +528,6 @@ class MujocoViewer:
         img_original = self.get_frame(fixedcamid)
         if img_original is None:
             return None
-        
-        # grey_values = img_original.sum(axis=2)
-        # img_grey = np.empty_like(img_original)
-        # img_grey[:,:,0] = grey_values
-        # img_grey[:,:,1] = grey_values
-        # img_grey[:,:,2] = grey_values
 
         gray_img = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
         if self._last_img is None:
@@ -554,14 +552,17 @@ class MujocoViewer:
 
         gray_img = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
         np_timestamp = np.array([timestamp])
-        e_img = self._esim.img2e(gray_img, np_timestamp)
+        out = self._esim.img2e(gray_img, np_timestamp)
 
-        if e_img is None:
+        if out is None:
             return None
 
-        self.save_img(e_img, path)
+        # save order is important
+        e_img, e = out
+        self.save_events(e, path)
+        self.save_img(e_img, path + "/imgs")
 
-        return e_img
+        return e_img, e
 
 
     def close(self):
