@@ -45,8 +45,6 @@ class Esim_interface:
 
         return np.stack((np_dic["x"], np_dic["y"], np_dic["t"], np_dic["p"]), axis=1)
 
-        # return np.array(lis) 
-
     # from event array to img
     def img2e(self, img, t):
         log_image = np.log(img.astype("float32") / 255 + 1e-5)

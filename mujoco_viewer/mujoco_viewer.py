@@ -5,11 +5,10 @@ from threading import Lock
 import numpy as np
 import time
 import imageio
-import esim_torch
-import torch
 import cv2
 
 from .utils.esim import Esim_interface 
+from upsampler import Upsampler
 
 class MujocoViewer:
     def __init__(self, model, data):
@@ -37,7 +36,8 @@ class MujocoViewer:
 
         # additions for the new feartures
         self._last_img = None
-        self._esim = Esim_interface()
+        self._esim = None
+        self._upsampler = None
 
         # glfw init
         glfw.init()
@@ -544,11 +544,19 @@ class MujocoViewer:
 
     # capture camera event of a specified camera id and return img array and write in /tmp
     def capture_event(self, fixedcamid, timestamp, path="/tmp"):
-
         img_original = self.get_frame(fixedcamid)
 
         if img_original is None:
             return None
+
+        return self.process_img(img_original, timestamp, path)
+
+    def init_esim(self, contrast_threshold_negative=0.1, contrast_threshold_positive=0.5, refractory_period_ns=1):
+        self._esim = Esim_interface(contrast_threshold_negative, contrast_threshold_positive, refractory_period_ns)
+
+    def process_img(self, img_original, timestamp, path):
+        if self._esim is None:
+            raise ValueError("Init esim first")
 
         gray_img = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
         np_timestamp = np.array([timestamp])
@@ -563,6 +571,31 @@ class MujocoViewer:
         self.save_img(e_img, path + "/imgs")
 
         return e_img, e
+
+
+    def capture_event_with_upsampling(self, fixedcamid, timestamp, path="/tmp"):
+
+        upsampled_images, upsampled_timestamps = None, None
+
+        img_original = self.get_frame(fixedcamid)
+
+        if img_original is None:
+            return None
+
+        if not self._upsampler:
+            self._upsampler = Upsampler(img_original, timestamp)
+            self.process_img(img_original, timestamp, path)
+        else:
+             upsampled_images, upsampled_timestamps = self._upsampler.upsample_adaptively(img_original, timestamp)
+
+        e_img_list = []
+        e_list = []
+        for I, t in zip(upsampled_images, upsampled_timestamps):
+            e_img, e = self.process_img(I, t, path)
+            e_img_list.append(e_img)
+            e_list.append(e)
+
+        return e_img_list, e_list
 
 
     def close(self):
