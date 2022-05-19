@@ -4,12 +4,15 @@ import esim_torch
 import torch
 import cv2
 
+
 class Esim_interface:
 
     def __init__(self, contrast_threshold_negative=0.1, contrast_threshold_positive=0.5, refractory_period_ns=0):
         self._esim = esim_torch.ESIM(contrast_threshold_negative,
                             contrast_threshold_positive,
                             refractory_period_ns)
+
+        self._upsampler = None
 
     # from event numpy array to img
     def viz_events(self, events, resolution):
@@ -40,16 +43,9 @@ class Esim_interface:
 
         np_dic = {k: v.numpy() for k, v in tensor_dic.items() }
 
-        size = list(np_dic.values())[0].size
+        return np.stack((np_dic["x"], np_dic["y"], np_dic["t"], np_dic["p"]), axis=1)
 
-        lis = []
-        for i in range(size):
-            event = []
-            for v in np_dic.values():
-                event.append(v[i])
-            lis.append(event)
-
-        return np.array(lis) 
+        # return np.array(lis) 
 
     # from event array to img
     def img2e(self, img, t):
@@ -74,3 +70,5 @@ class Esim_interface:
         im = self.viz_events(e, [H, W])
 
         return im, sub_events
+
+    
