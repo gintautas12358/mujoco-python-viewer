@@ -120,6 +120,8 @@ class MujocoViewer:
         # Display coordinate frames
         elif key == glfw.KEY_E:
             self.vopt.frame = 1 - self.vopt.frame
+        elif key == glfw.KEY_B:
+            self.vopt.frame = 3 - self.vopt.frame
         # Hide overlay menu
         elif key == glfw.KEY_H:
             self._hide_menu = not self._hide_menu
@@ -543,18 +545,18 @@ class MujocoViewer:
         return img
 
     # capture camera event of a specified camera id and return img array and write in /tmp
-    def capture_event(self, fixedcamid, timestamp, path="/tmp"):
+    def capture_event(self, fixedcamid, timestamp, save_it=False, path="/tmp"):
         img_original = self.get_frame(fixedcamid)
 
         if img_original is None:
             return None
 
-        return self.process_img(img_original, timestamp, path)
+        return self.process_img(img_original, timestamp, save_it, path)
 
     def init_esim(self, contrast_threshold_negative=0.1, contrast_threshold_positive=0.5, refractory_period_ns=1):
         self._esim = Esim_interface(contrast_threshold_negative, contrast_threshold_positive, refractory_period_ns)
 
-    def process_img(self, img_original, timestamp, path):
+    def process_img(self, img_original, timestamp, save_it, path):
         if self._esim is None:
             raise ValueError("Init esim first")
 
@@ -567,12 +569,13 @@ class MujocoViewer:
 
         # save order is important
         e_img, e = out
-        self.save_events(e, path)
-        self.save_img(e_img, path + "/imgs")
+        if save_it:
+            self.save_events(e, path)
+            self.save_img(e_img, path + "/imgs")
 
         return e_img, e
 
-
+    # capture camera event of a specified camera id and return img array and write in /tmp
     def capture_event_with_upsampling(self, fixedcamid, timestamp, path="/tmp"):
 
         upsampled_images, upsampled_timestamps = None, None
