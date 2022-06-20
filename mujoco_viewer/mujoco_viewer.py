@@ -490,6 +490,9 @@ class MujocoViewer:
         # apply perturbation (should this come before mj_step?)
         self.apply_perturbations()
 
+    def change_camera(self,fixedcamid):
+        self.cam.fixedcamid = fixedcamid
+
     def get_frame(self, fixedcamid):
         self.cam.fixedcamid = fixedcamid
         self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
@@ -603,3 +606,6 @@ class MujocoViewer:
 
     def close(self):
         glfw.terminate()
+
+
+    # https://github.com/openai/mujoco-py/issues/510
