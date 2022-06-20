@@ -518,12 +518,13 @@ class MujocoViewer:
         np.savez(path, **e)
 
     # capture camera frame of a specified camera id and return img array and write in /tmp
-    def capture_frame(self, fixedcamid, path="/tmp"):
+    def capture_frame(self, fixedcamid, save_it=False, path="/tmp"):
         img = self.get_frame(fixedcamid)
         if img is None:
             return None
         
-        self.save_img(img, path)
+        if save_it:
+            self.save_img(img, path)
 
         return img
 
@@ -579,6 +580,7 @@ class MujocoViewer:
         return e_img, e
 
     # capture camera event of a specified camera id and return img array and write in /tmp
+    # not done
     def capture_event_with_upsampling(self, fixedcamid, timestamp, path="/tmp"):
 
         upsampled_images, upsampled_timestamps = None, None
