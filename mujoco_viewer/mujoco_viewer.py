@@ -6,6 +6,7 @@ import numpy as np
 import time
 import imageio
 import cv2
+from pathlib import Path
 
 from .utils.esim import Esim_interface 
 from upsampler import Upsampler
@@ -141,6 +142,10 @@ class MujocoViewer:
             print("Quitting.")
             glfw.terminate()
             sys.exit(0)
+
+    def close(self):
+        glfw.terminate()
+        sys.exit(0)
 
     def _cursor_pos_callback(self, window, xpos, ypos):
         if not (self._button_left_pressed or self._button_right_pressed):
@@ -490,8 +495,16 @@ class MujocoViewer:
         # apply perturbation (should this come before mj_step?)
         self.apply_perturbations()
 
+    def make_current(self):
+        glfw.make_context_current(self.window)
+
+    def set_sim_speed(self, x):
+        self._run_speed = x
+        self._render_every_frame = False
+
     def change_camera(self,fixedcamid):
         self.cam.fixedcamid = fixedcamid
+        self.cam.type = mujoco.mjtCamera.mjCAMERA_FIXED
 
     def get_frame(self, fixedcamid):
         self.cam.fixedcamid = fixedcamid
@@ -524,7 +537,9 @@ class MujocoViewer:
             return None
         
         if save_it:
-            self.save_img(img, path)
+            raw_imgs_path = path + "/raw_imgs"
+            Path(raw_imgs_path).mkdir(parents=True, exist_ok=True)
+            self.save_img(img, raw_imgs_path)
 
         return img
 
@@ -573,9 +588,15 @@ class MujocoViewer:
 
         # save order is important
         e_img, e = out
+        
+        
         if save_it:
-            self.save_events(e, path)
-            self.save_img(e_img, path + "/imgs")
+            events_path = path + "/events"
+            event_imgs_path = path + "/event_imgs"
+            Path(events_path).mkdir(parents=True, exist_ok=True)
+            Path(event_imgs_path).mkdir(parents=True, exist_ok=True)
+            self.save_events(e, events_path)
+            self.save_img(e_img, event_imgs_path)
 
         return e_img, e
 

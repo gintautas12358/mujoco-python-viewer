@@ -44,8 +44,8 @@ class Esim_interface:
         image_pos = np.zeros(resolution, dtype="uint8")
         image_neg = np.zeros(resolution, dtype="uint8")
 
-        image_pos[pos_events[:,0],pos_events[:,1]] = 50
-        image_neg[neg_events[:,0],neg_events[:,1]] = 50
+        image_pos[pos_events[:,1],pos_events[:,0]] = 50
+        image_neg[neg_events[:,1],neg_events[:,0]] = 50
 
         image_rgb = np.stack(
             [   image_pos, 
@@ -84,7 +84,7 @@ class Esim_interface:
         # transform to an image
         H, W = img.shape
         e = self.t2e(sub_events)
-        im = self.viz_events2(e, [H, W])
+        im = self.viz_events(e, [H, W])
 
         return im, sub_events
 
