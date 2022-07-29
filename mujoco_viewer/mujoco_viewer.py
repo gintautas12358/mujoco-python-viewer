@@ -12,7 +12,7 @@ from .utils.esim import Esim_interface
 from upsampler import Upsampler
 
 class MujocoViewer:
-    def __init__(self, model, data):
+    def __init__(self, model, data, headless=False, render_every_frame=True):
         self.model = model
         self.data = data
 
@@ -26,7 +26,7 @@ class MujocoViewer:
         self._paused = False
         self._transparent = False
         self._contacts = False
-        self._render_every_frame = True
+        self._render_every_frame = render_every_frame
         self._image_idx = 0
         self._image_path = "/tmp/frame_%07d.png"
         self._time_per_render = 1 / 60.0
@@ -43,6 +43,10 @@ class MujocoViewer:
         # glfw init
         glfw.init()
         width, height = glfw.get_video_mode(glfw.get_primary_monitor()).size
+
+        if headless:
+            glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+
         self.window = glfw.create_window(
             width // 2, height // 2, "mujoco", None, None)
         glfw.make_context_current(self.window)
@@ -500,7 +504,6 @@ class MujocoViewer:
 
     def set_sim_speed(self, x):
         self._run_speed = x
-        self._render_every_frame = False
 
     def change_camera(self,fixedcamid):
         self.cam.fixedcamid = fixedcamid
