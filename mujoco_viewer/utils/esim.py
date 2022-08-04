@@ -13,6 +13,8 @@ class Esim_interface:
                             refractory_period_ns)
 
         self._upsampler = None
+        self.first_image = True
+        self.image_count = 0
 
     # from event numpy array to img
     def viz_events(self, events, resolution):
@@ -66,6 +68,14 @@ class Esim_interface:
 
     # from event array to img
     def img2e(self, img, t):
+
+        self.image_count += 1
+
+        # if self.image_count < 10:
+        #     img = np.ones_like(img) * 255 * (self.image_count % 2)
+        #     self.first_image = False
+        #     print("@@@@@@@@@@@@@only ones")
+
         log_image = np.log(img.astype("float32") / 255 + 1e-5)
         log_image = torch.from_numpy(log_image).cuda()
 
@@ -84,7 +94,7 @@ class Esim_interface:
         # transform to an image
         H, W = img.shape
         e = self.t2e(sub_events)
-        im = self.viz_events(e, [H, W])
+        im = self.viz_events2(e, [H, W])
 
         return im, sub_events
 

@@ -39,6 +39,7 @@ class MujocoViewer:
         self._last_img = None
         self._esim = None
         self._upsampler = None
+        self.count = 0
 
         # glfw init
         glfw.init()
@@ -581,6 +582,10 @@ class MujocoViewer:
     def process_img(self, img_original, timestamp, save_it, path):
         if self._esim is None:
             raise ValueError("Init esim first")
+
+        if self.count < 2:
+            self.count += 1
+            return None
 
         gray_img = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
         np_timestamp = np.array([timestamp])
