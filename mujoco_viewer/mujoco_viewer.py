@@ -12,7 +12,7 @@ from .utils.esim import Esim_interface
 from upsampler import Upsampler
 
 class MujocoViewer:
-    def __init__(self, model, data, headless=False, render_every_frame=True):
+    def __init__(self, model, data, headless=False, render_every_frame=True, running_events=False):
         self.model = model
         self.data = data
 
@@ -43,7 +43,10 @@ class MujocoViewer:
 
         # glfw init
         glfw.init()
-        width, height = glfw.get_video_mode(glfw.get_primary_monitor()).size
+        if running_events:
+            width, height = 128, 128
+        else:
+            width, height = glfw.get_video_mode(glfw.get_primary_monitor()).size
 
         if headless:
             glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
@@ -638,5 +641,3 @@ class MujocoViewer:
     def close(self):
         glfw.terminate()
 
-
-    # https://github.com/openai/mujoco-py/issues/510
