@@ -12,7 +12,7 @@ from .utils.esim import Esim_interface
 from upsampler import Upsampler
 
 class MujocoViewer:
-    def __init__(self, model, data, headless=False, render_every_frame=True, running_events=False):
+    def __init__(self, model, data, headless=False, render_every_frame=True, running_events=False, win_size=None):
         self.model = model
         self.data = data
 
@@ -47,6 +47,8 @@ class MujocoViewer:
             width, height = 128, 128
         else:
             width, height = glfw.get_video_mode(glfw.get_primary_monitor()).size
+            if win_size is not None:
+                width, height = win_size[0]*2, win_size[1]*2
 
         if headless:
             glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
@@ -598,7 +600,7 @@ class MujocoViewer:
             return None
 
         # save order is important
-        e_img, e = out
+        e_img, e, num_e = out
         
         
         if save_it:
@@ -609,7 +611,7 @@ class MujocoViewer:
             self.save_events(e, events_path)
             self.save_img(e_img, event_imgs_path)
 
-        return e_img, e
+        return e_img, e, num_e
 
     # capture camera event of a specified camera id and return img array and write in /tmp
     # not done
@@ -638,6 +640,9 @@ class MujocoViewer:
         return e_img_list, e_list
 
 
-    def close(self):
-        glfw.terminate()
+    def close_win(self):
+        print("######################################")
+        # glfw.terminate()
+        glfw.destroy_window(self.window)
+        # self.window = glfw.create_window
 
